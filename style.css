@@ -1,0 +1,1031 @@
+/* =============================================
+   オセロゲーム スタイルシート
+   =============================================
+   画面の見た目（色・サイズ・レイアウト）を
+   すべてここで定義しています。
+   ============================================= */
+
+
+/* =============================================
+   CSS変数（カスタムプロパティ）の定義
+   =============================================
+   :root に書くことで、ファイル全体から参照できる。
+
+   --cell-size：盤面の1マスのサイズ
+     min() は「3つの値のうち最も小さい値を使う」関数。
+     ① 62px                    … PCでの最大サイズ
+     ② (100vw - 40px) / 8      … 画面幅から左右余白を引いて8等分
+     ③ (100vh - 400px) / 8     … 画面高さからUI部分を引いて8等分
+       400px の内訳（概算）：
+         body padding上下  : 20px
+         h1               : 36px
+         gap × 6          : 48px
+         #status          : 36px
+         #result-display  : 40px（ゲーム終了時）
+         #score           : 36px
+         #btn-area        : 40px
+         余裕分           : 144px
+         ─────────────────────
+         合計             : 400px
+     → 画面が小さいほど自動的にマスが小さくなる
+
+   --stone-size：石のサイズ（マスの82%）
+   --hint-size ：置けるマスのヒント点のサイズ（マスの25%）
+   ============================================= */
+:root {
+  --cell-size: min(62px, calc((100vw - 40px) / 8), calc((100vh - 400px) / 8));
+  --stone-size: calc(var(--cell-size) * 0.82);
+  --hint-size:  calc(var(--cell-size) * 0.25);
+}
+
+
+/* ----- リセット・基本設定 ----- */
+
+/* すべての要素に対して、パディングやマージンを0にリセットする */
+* {
+  box-sizing: border-box; /* 幅・高さの計算にパディングを含める */
+  margin: 0;
+  padding: 0;
+}
+
+/* ページ全体のスタイル */
+body {
+  background-color: #1a1a2e; /* 濃い紺色の背景 */
+  /* 日本語フォントを優先しつつ、英語フォントも指定する */
+  font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN',
+               'Hiragino Sans', 'Meiryo', sans-serif;
+  /* ゲームコンテナを画面の中央に配置する */
+  display: flex;
+  justify-content: center; /* 横方向：中央 */
+  align-items: flex-start; /* 縦方向：上寄せ */
+  min-height: 100vh;
+  /* padding を小さくして縦方向の余白を節約する */
+  padding: 10px 16px;
+}
+
+
+/* ----- ゲーム全体のコンテナ ----- */
+
+#game-container {
+  display: flex;
+  flex-direction: column; /* 子要素を縦方向に並べる */
+  align-items: center;    /* 横方向に中央寄せ */
+  /* gap を小さくして各要素の間隔を節約する */
+  gap: 8px;
+}
+
+
+/* ----- タイトル ----- */
+
+h1 {
+  color: #ffffff;
+  /* font-size を少し小さくして縦スペースを節約する */
+  font-size: 1.6rem;
+  letter-spacing: 0.3em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  margin-top: 4px;
+}
+
+
+/* ----- ターン表示エリア ----- */
+
+#status {
+  background-color: #16213e;
+  border-radius: 8px;
+  /* padding を小さくして縦スペースを節約する */
+  padding: 7px 24px;
+  min-width: 200px;
+  text-align: center;
+  border: 1px solid #0f3460;
+}
+
+#turn-display {
+  color: #e0e0e0;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+
+/* ----- 石数表示エリア ----- */
+
+#score {
+  display: flex;
+  gap: 32px;
+  background-color: #16213e;
+  border-radius: 8px;
+  /* padding を小さくして縦スペースを節約する */
+  padding: 7px 24px;
+  border: 1px solid #0f3460;
+}
+
+/* 黒石の石数ラベル */
+.score-black {
+  color: #cccccc;
+  font-size: 0.95rem;
+  font-weight: bold;
+}
+
+/* 白石の石数ラベル */
+.score-white {
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: bold;
+}
+
+
+/* ----- オセロ盤面 ----- */
+
+#board {
+  /* CSS変数 --cell-size を使って8×8のグリッドを作る */
+  /* 画面サイズに応じてマスのサイズが自動調整される */
+  display: grid;
+  grid-template-columns: repeat(8, var(--cell-size));
+  grid-template-rows: repeat(8, var(--cell-size));
+  /* マス間の隙間を緑色の枠線に見せる */
+  gap: 1px;
+  background-color: #1e5c18; /* 盤面の枠線色（濃い緑） */
+  border: 3px solid #1e5c18;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+}
+
+
+/* ----- 各マス ----- */
+
+.cell {
+  /* CSS変数でサイズを指定する */
+  width: var(--cell-size);
+  height: var(--cell-size);
+  background-color: #2e7d32; /* 緑色のマス */
+  /* 石を中央に配置するためにflexboxを使う */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: default;    /* 通常は矢印カーソル */
+  position: relative; /* 子要素の位置基準にする */
+}
+
+/* 石を置けるマスのスタイル */
+.cell.valid {
+  background-color: #388e3c; /* 少し明るい緑でハイライト */
+  cursor: pointer;            /* クリックできることを示すカーソル */
+}
+
+/* 置けるマスにマウスを乗せたとき */
+.cell.valid:hover {
+  background-color: #43a047;
+}
+
+/* 置けるマスに表示する小さなヒント点 */
+.cell.valid::after {
+  content: '';
+  /* CSS変数でヒント点のサイズを指定する */
+  width: var(--hint-size);
+  height: var(--hint-size);
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 50%; /* 円形にする */
+  position: absolute;
+  pointer-events: none; /* クリックイベントを通過させる */
+}
+
+/* 石が置かれているマスではヒント点を非表示にする */
+.cell.valid:has(.stone)::after {
+  display: none;
+}
+
+
+/* ----- 石（共通スタイル） ----- */
+
+.stone {
+  /* CSS変数で石のサイズを指定する */
+  width: var(--stone-size);
+  height: var(--stone-size);
+  border-radius: 50%; /* 円形にする */
+  position: absolute;
+  /* ※ アニメーションはここには書かない。
+     新しく置いた石には .placed、ひっくり返った石には .flipped を
+     JavaScriptで付けることで、必要な石だけアニメーションさせる。 */
+}
+
+/* -----------------------------------------------
+   新しく置いた石のアニメーション（.placed クラス）
+   「ポン」と置かれる感じを表現する
+----------------------------------------------- */
+.stone.placed {
+  animation: anim-placed 0.2s ease-out forwards;
+}
+
+@keyframes anim-placed {
+  0%   { transform: scale(0.3); opacity: 0.5; }
+  70%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* -----------------------------------------------
+   ひっくり返った石のアニメーション（.flipped クラス）
+   横方向に一瞬つぶれて色が変わったように見せる
+----------------------------------------------- */
+.stone.flipped {
+  animation: anim-flipped 0.35s ease-in-out forwards;
+}
+
+@keyframes anim-flipped {
+  0%   { transform: scaleX(1);    }
+  40%  { transform: scaleX(0.05); }
+  100% { transform: scaleX(1);    }
+}
+
+
+/* ----- 黒石 ----- */
+
+.stone.black {
+  background: radial-gradient(circle at 35% 30%, #666666, #111111 70%);
+  box-shadow:
+    2px 3px 6px rgba(0, 0, 0, 0.7),
+    inset -1px -1px 3px rgba(0, 0, 0, 0.5);
+}
+
+
+/* ----- 白石 ----- */
+
+.stone.white {
+  background: radial-gradient(circle at 35% 30%, #ffffff, #cccccc 70%);
+  box-shadow:
+    2px 3px 6px rgba(0, 0, 0, 0.4),
+    inset -1px -1px 3px rgba(180, 180, 180, 0.5);
+  border: 1px solid #aaaaaa;
+}
+
+
+/* ----- パスメッセージ ----- */
+
+#pass-message {
+  background-color: #6a1b9a; /* 紫系 */
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 7px 20px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  text-align: center;
+  /* 通常は非表示（JavaScriptで表示を切り替える） */
+  display: none;
+}
+
+/* JavaScriptで .visible クラスを追加したときに表示する */
+#pass-message.visible {
+  display: block;
+}
+
+
+/* ----- リセットボタン ----- */
+
+#reset-btn {
+  background-color: #c62828; /* 赤系 */
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 28px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 4px 12px rgba(198, 40, 40, 0.4);
+}
+
+#reset-btn:hover {
+  background-color: #b71c1c;
+  transform: translateY(-2px);
+}
+
+#reset-btn:active {
+  transform: translateY(0);
+}
+
+
+/* ----- ゲーム結果表示エリア ----- */
+
+#result-display {
+  background-color: #e65100; /* オレンジ系 */
+  color: #ffffff;
+  border-radius: 10px;
+  min-width: 200px;
+  /* padding を小さくして縦スペースを節約する */
+  padding: 10px 24px;
+  font-size: 1rem;
+  font-weight: bold;
+  text-align: center;
+  letter-spacing: 0.05em;
+  box-shadow: 0 4px 16px rgba(230, 81, 0, 0.5);
+  /* 通常は非表示 */
+  display: none;
+}
+
+/* JavaScriptで .visible クラスを追加したときに表示する */
+#result-display.visible {
+  display: block;
+}
+
+
+/* =============================================
+   モード選択画面
+   ============================================= */
+
+#mode-select {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background-color: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 12px;
+  padding: 24px 36px;
+}
+
+/* 「対戦モードを選んでください」のラベル */
+.mode-label {
+  color: #cccccc;
+  font-size: 1rem;
+  margin-bottom: 2px;
+}
+
+/* モード選択ボタン（2人対戦 / CPU対戦）の共通スタイル */
+.mode-btn {
+  width: 220px;
+  background-color: #1e3a5f;
+  color: #cccccc;
+  border: 2px solid #2a5298;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.mode-btn:hover {
+  background-color: #2a4a7f;
+  color: #ffffff;
+}
+
+/* 選択中のモードボタン（JavaScriptで付与） */
+.mode-btn--active {
+  background-color: #1565c0;
+  border-color: #42a5f5;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(66, 165, 245, 0.4);
+}
+
+/* CPU強さ選択エリア */
+#cpu-level-select {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 0 4px;
+  border-top: 1px solid #2a5298;
+}
+
+/* 「CPUの強さを選んでください」のラベル */
+.level-label {
+  color: #aaaacc;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* 強さボタンを横並びにするコンテナ */
+#cpu-level-btns {
+  display: flex;
+  gap: 10px;
+}
+
+/* 強さ選択ボタン（初級・中級）の共通スタイル */
+.level-btn {
+  width: 96px;
+  background-color: #1e3a5f;
+  color: #aaaacc;
+  border: 2px solid #2a5298;
+  border-radius: 6px;
+  padding: 10px 0;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.level-btn:hover {
+  background-color: #2a4a7f;
+  color: #ffffff;
+}
+
+/* 選択中の強さボタン（JavaScriptで付与） */
+.level-btn--active {
+  background-color: #1565c0;
+  border-color: #42a5f5;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(66, 165, 245, 0.35);
+}
+
+/* ゲーム開始ボタン */
+.start-btn {
+  margin-top: 4px;
+  width: 220px;
+  background-color: #2e7d32;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4);
+}
+
+.start-btn:hover {
+  background-color: #1b5e20;
+  transform: translateY(-2px);
+}
+
+.start-btn:active {
+  transform: translateY(0);
+}
+
+
+/* =============================================
+   ゲーム画面
+   ============================================= */
+
+/* ゲーム画面全体のコンテナ */
+#game-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* hidden クラスが付いているときは非表示にする */
+.hidden {
+  display: none !important;
+}
+
+/* ボタンエリア（リセット・モード選択に戻る） */
+#btn-area {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* CPU代理ボタン（2人対戦中のみ表示） */
+#proxy-btn {
+  background-color: #4a148c; /* 紫系 */
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 4px 12px rgba(74, 20, 140, 0.4);
+}
+
+#proxy-btn:hover {
+  background-color: #6a1b9a;
+  transform: translateY(-2px);
+}
+
+#proxy-btn:active {
+  transform: translateY(0);
+}
+
+/* CPU代理中は薄く表示して押せないことを示す */
+#proxy-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+
+/* モード選択に戻るボタン */
+#back-btn {
+  background-color: #37474f;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+#back-btn:hover {
+  background-color: #263238;
+  transform: translateY(-2px);
+}
+
+#back-btn:active {
+  transform: translateY(0);
+}
+
+
+/* 戦績ボタン */
+#stats-btn {
+  background-color: #1565c0;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 4px 12px rgba(21, 101, 192, 0.4);
+}
+
+#stats-btn:hover {
+  background-color: #0d47a1;
+  transform: translateY(-2px);
+}
+
+#stats-btn:active {
+  transform: translateY(0);
+}
+
+
+/* =============================================
+   戦績モーダル
+   ============================================= */
+
+/* モーダル全体のコンテナ（画面全体を覆う） */
+#stats-modal {
+  /* 画面全体に重ねて表示する */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* 他の要素より前面に表示する */
+  z-index: 100;
+  /* 中央に配置する */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 背景の半透明オーバーレイ（クリックで閉じる） */
+#stats-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+
+/* モーダルの本体 */
+#stats-content {
+  position: relative; /* オーバーレイより前面に表示 */
+  background-color: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 12px;
+  padding: 20px;
+  width: min(520px, calc(100vw - 32px)); /* 画面幅に合わせて調整 */
+  max-height: calc(100vh - 40px);
+  overflow-y: auto; /* 縦にはみ出す場合はスクロール */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ヘッダー（タイトルと閉じるボタン） */
+#stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#stats-header h2 {
+  color: #ffffff;
+  font-size: 1.2rem;
+  letter-spacing: 0.1em;
+}
+
+/* 閉じるボタン */
+#stats-close-btn {
+  background: none;
+  border: none;
+  color: #aaaaaa;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+#stats-close-btn:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* サマリーエリア（総対戦数・勝ち数など） */
+#stats-summary {
+  display: grid;
+  /* 4列 + 勝率は横幅いっぱいの1行 */
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+/* 勝率は4列分の幅を使う（横幅いっぱいに表示） */
+.summary-item--wide {
+  grid-column: 1 / -1; /* 全列にまたがる */
+  flex-direction: row;  /* ラベルと数値を横並びにする */
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+}
+
+/* サマリーの各項目 */
+.summary-item {
+  background-color: #0f3460;
+  border-radius: 8px;
+  padding: 10px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-label {
+  color: #aaaacc;
+  font-size: 0.75rem;
+}
+
+.summary-value {
+  color: #ffffff;
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+/* あなたの勝ち（緑系） */
+.summary-win  { color: #81c784; }
+/* あなたの負け（赤系） */
+.summary-lose { color: #e57373; }
+/* 引き分け（グレー） */
+.summary-draw { color: #aaaaaa; }
+/* 勝率（黄色系） */
+.summary-winrate { color: #ffd54f; font-size: 1.3rem; }
+
+/* 対戦履歴エリア */
+#stats-history {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 280px;
+  overflow-y: auto; /* 履歴が多い場合はスクロール */
+}
+
+/* 履歴のヘッダー行 */
+.history-header {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1fr 1fr;
+  gap: 8px;
+  padding: 6px 8px;
+  color: #aaaacc;
+  font-size: 0.75rem;
+  border-bottom: 1px solid #2a5298;
+}
+
+/* 履歴の各行 */
+.history-row {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1fr 1fr;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.history-row:hover {
+  background-color: rgba(255, 255, 255, 0.07);
+}
+
+.history-date  { color: #aaaacc; }
+.history-mode  { color: #cccccc; }
+.history-score { color: #aaaacc; text-align: right; }
+
+/* 勝敗の色 */
+.result-win   { color: #81c784; font-weight: bold; } /* あなたの勝ち（緑系） */
+.result-lose  { color: #e57373; font-weight: bold; } /* あなたの負け（赤系） */
+.result-black { color: #90caf9; font-weight: bold; } /* 黒勝ち（青系・2人対戦用） */
+.result-white { color: #e0e0e0; font-weight: bold; } /* 白勝ち（白系・2人対戦用） */
+.result-draw  { color: #aaaaaa; font-weight: bold; } /* 引き分け（グレー） */
+
+/* 履歴がない場合のメッセージ */
+.stats-empty {
+  color: #aaaacc;
+  text-align: center;
+  padding: 20px;
+  font-size: 0.9rem;
+}
+
+/* 戦績リセットボタン */
+#stats-reset-btn {
+  background-color: #37474f;
+  color: #aaaaaa;
+  border: 1px solid #546e7a;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  align-self: center;
+  width: 160px;
+}
+
+#stats-reset-btn:hover {
+  background-color: #c62828;
+  color: #ffffff;
+  border-color: #c62828;
+}
+
+
+/* =============================================
+   開発用デバッグエリア（?debug=1 のときのみ表示）
+   ============================================= */
+
+#debug-area {
+  border-top: 1px dashed #546e7a; /* 通常エリアと区別するために破線 */
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 「🛠 開発用ツール」のラベル */
+.debug-label {
+  color: #f9a825; /* 黄色系で目立たせる */
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* デバッグボタンを横並びにするコンテナ */
+.debug-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* デバッグボタンの共通スタイル */
+.debug-btns button {
+  background-color: #4a3000;
+  color: #f9a825;
+  border: 1px solid #f9a825;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.debug-btns button:hover {
+  background-color: #7a5000;
+}
+
+
+/* 遊び方ボタン（モード選択画面・ゲーム画面共通） */
+.help-btn {
+  background: none;
+  color: #7986cb;
+  border: 1px solid #3949ab;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 0.88rem;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.help-btn:hover {
+  background-color: rgba(121, 134, 203, 0.15);
+  color: #9fa8da;
+}
+
+
+/* =============================================
+   遊び方・ルール説明モーダル
+   ============================================= */
+
+/* モーダル全体のコンテナ */
+#help-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 200; /* 戦績モーダル(100)より前面 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 背景オーバーレイ */
+#help-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.75);
+  cursor: pointer;
+}
+
+/* モーダル本体 */
+#help-content {
+  position: relative;
+  background-color: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 12px;
+  padding: 20px;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ヘッダー（タイトルと✕ボタン） */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0; /* スクロール時にヘッダーを固定 */
+}
+
+.modal-header h2 {
+  color: #ffffff;
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+}
+
+/* ✕ボタン（共通） */
+#help-close-btn {
+  background: none;
+  border: none;
+  color: #aaaaaa;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+#help-close-btn:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 説明本文エリア（スクロール可能） */
+#help-body {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 4px; /* スクロールバーとの余白 */
+}
+
+/* 各セクション */
+.help-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.help-section h3 {
+  color: #90caf9;
+  font-size: 0.95rem;
+  font-weight: bold;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #1e3a5f;
+}
+
+/* 箇条書きリスト */
+.help-section ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-left: 4px;
+}
+
+.help-section ul li {
+  color: #cccccc;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  padding-left: 12px;
+  position: relative;
+}
+
+.help-section ul li::before {
+  content: '・';
+  position: absolute;
+  left: 0;
+  color: #7986cb;
+}
+
+/* 定義リスト（dt/dd） */
+.help-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  padding-left: 4px;
+}
+
+.help-dl dt {
+  color: #ffd54f; /* 黄色系でラベルを目立たせる */
+  font-size: 0.88rem;
+  font-weight: bold;
+  white-space: nowrap;
+  padding-top: 1px;
+}
+
+.help-dl dd {
+  color: #cccccc;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+/* インラインバッジ（画面の見方の説明用） */
+.help-badge {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+.help-badge--green {
+  background-color: #388e3c;
+  color: #ffffff;
+}
+
+.help-badge--dark {
+  background-color: #0f3460;
+  color: #cccccc;
+  border: 1px solid #2a5298;
+}
+
+/* 下部の閉じるボタン */
+#help-close-bottom-btn {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+
+/* =============================================
+   レスポンシブ対応（スマートフォン向け）
+   画面幅が480px以下のときに追加で適用される
+   ※ CSS変数による自動調整が主な対応手段なので、
+     ここでは細かい調整のみ行う
+   ============================================= */
+
+@media (max-width: 480px) {
+
+  /* タイトルをさらに小さくする */
+  h1 {
+    font-size: 1.3rem;
+    letter-spacing: 0.15em;
+  }
+
+  /* 石数表示の間隔を狭める */
+  #score {
+    gap: 16px;
+    padding: 6px 14px;
+  }
+
+  /* ボタンを縦並びにして幅を広げる */
+  #btn-area {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #reset-btn,
+  #back-btn {
+    width: 180px;
+    text-align: center;
+  }
+}

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <!-- スマートフォンでも正しく表示されるように設定 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>オセロゲーム</title>
+  <!-- スタイルシートを読み込む -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ゲーム全体を囲むコンテナ（中央寄せのために使う） -->
+  <div id="game-container">
+
+    <!-- タイトル -->
+    <h1>オセロ</h1>
+
+    <!-- =============================================
+         モード選択画面
+         ゲーム開始前に表示する。ゲーム中は非表示になる。
+         ============================================= -->
+    <div id="mode-select">
+      <p class="mode-label">対戦モードを選んでください</p>
+      <!-- 2人対戦ボタン -->
+      <button id="btn-local" class="mode-btn mode-btn--active">
+        👥 2人対戦
+      </button>
+      <!-- CPU対戦ボタン -->
+      <button id="btn-cpu" class="mode-btn">
+        🤖 CPU対戦
+      </button>
+
+      <!-- CPU強さ選択エリア（CPU対戦を選んだときだけ表示する） -->
+      <div id="cpu-level-select" class="hidden">
+        <p class="level-label">CPUの強さを選んでください</p>
+        <div id="cpu-level-btns">
+          <button id="btn-easy" class="level-btn level-btn--active">初級</button>
+          <button id="btn-medium" class="level-btn">中級</button>
+          <button id="btn-hard" class="level-btn">上級</button>
+        </div>
+      </div>
+
+      <!-- ゲーム開始ボタン -->
+      <button id="btn-start" class="start-btn">ゲーム開始</button>
+
+      <!-- 遊び方ボタン（モード選択画面） -->
+      <button id="help-btn-mode" class="help-btn">❓ 遊び方・ルール</button>
+    </div>
+
+    <!-- =============================================
+         ゲーム画面
+         ゲーム開始後に表示する。モード選択中は非表示。
+         ============================================= -->
+    <div id="game-screen" class="hidden">
+
+      <!-- 現在のターンを表示するエリア -->
+      <div id="status">
+        <span id="turn-display">● 黒のターン</span>
+      </div>
+
+      <!-- ゲーム終了時の勝敗結果を表示するエリア（通常は非表示） -->
+      <!-- ターン表示の直下に置くことで、ゲーム終了時に自然に目に入る -->
+      <div id="result-display"></div>
+
+      <!-- 黒・白それぞれの石数を表示するエリア -->
+      <div id="score">
+        <span id="black-count" class="score-black">● 黒: 2</span>
+        <span id="white-count" class="score-white">○ 白: 2</span>
+      </div>
+
+      <!-- オセロ盤面（8×8のマスはJavaScriptで動的に生成する） -->
+      <div id="board"></div>
+
+      <!-- パスが発生したときのメッセージ（通常は非表示） -->
+      <div id="pass-message"></div>
+
+      <!-- ボタンエリア -->
+      <div id="btn-area">
+        <!-- リセットボタン：選択中のモードを維持して最初からやり直す -->
+        <button id="reset-btn">リセット</button>
+        <!-- 戦績を見るボタン -->
+        <button id="stats-btn">📊 戦績</button>
+        <!-- 遊び方ボタン（ゲーム画面） -->
+        <button id="help-btn-game" class="help-btn">❓ 遊び方</button>
+        <!-- CPU代理ボタン：2人対戦中に現在の手番をCPUに1手だけ任せる -->
+        <button id="proxy-btn" class="hidden">🤖 CPUに任せる</button>
+        <!-- モード選択に戻るボタン -->
+        <button id="back-btn">モード選択に戻る</button>
+      </div>
+
+    </div><!-- /#game-screen -->
+
+    <!-- =============================================
+         戦績モーダル
+         「戦績を見る」ボタンを押したときに表示する。
+         通常は非表示（.hidden クラスで制御）。
+         ============================================= -->
+    <div id="stats-modal" class="hidden">
+      <!-- モーダルの背景（クリックで閉じる） -->
+      <div id="stats-overlay"></div>
+
+      <!-- モーダルの本体 -->
+      <div id="stats-content">
+
+        <!-- ヘッダー -->
+        <div id="stats-header">
+          <h2>戦績</h2>
+          <button id="stats-close-btn">✕</button>
+        </div>
+
+        <!-- サマリー（集計） -->
+        <div id="stats-summary">
+          <div class="summary-item">
+            <span class="summary-label">対戦数</span>
+            <span id="stats-total" class="summary-value">0</span>
+          </div>
+          <div class="summary-item">
+            <!-- ラベルはJavaScriptで「あなたの勝ち」または「黒の勝ち」に切り替わる -->
+            <span id="stats-win-label" class="summary-label">あなたの勝ち</span>
+            <span id="stats-win" class="summary-value summary-win">0</span>
+          </div>
+          <div class="summary-item">
+            <!-- ラベルはJavaScriptで「あなたの負け」または「白の勝ち」に切り替わる -->
+            <span id="stats-lose-label" class="summary-label">あなたの負け</span>
+            <span id="stats-lose" class="summary-value summary-lose">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">引き分け</span>
+            <span id="stats-draw" class="summary-value summary-draw">0</span>
+          </div>
+          <div class="summary-item summary-item--wide">
+            <span class="summary-label">勝率（引き分け除く）</span>
+            <span id="stats-win-rate" class="summary-value summary-winrate">-</span>
+          </div>
+        </div>
+
+        <!-- 対戦履歴一覧 -->
+        <div id="stats-history">
+          <!-- 履歴のヘッダー行 -->
+          <div class="history-header">
+            <span>日時</span>
+            <span>モード</span>
+            <span>結果</span>
+            <span>石数(黒-白)</span>
+          </div>
+          <!-- 履歴の一覧（stats.js の renderHistoryList() で動的に生成） -->
+          <div id="stats-history-list"></div>
+        </div>
+
+        <!-- 戦績リセットボタン -->
+        <button id="stats-reset-btn">戦績をリセット</button>
+
+        <!-- =============================================
+             開発用デバッグエリア
+             通常は非表示。URLに ?debug=1 が付いているときだけ
+             stats.js の initDebugMode() によって表示される。
+             ============================================= -->
+        <div id="debug-area" class="hidden">
+          <p class="debug-label">🛠 開発用ツール（debug=1 モード）</p>
+          <div class="debug-btns">
+            <button id="debug-add-1">テスト戦績を1件追加</button>
+            <button id="debug-add-10">テスト戦績を10件追加</button>
+          </div>
+        </div>
+
+      </div><!-- /#stats-content -->
+    </div><!-- /#stats-modal -->
+
+  </div><!-- /#game-container -->
+
+  <!-- =============================================
+       遊び方・ルール説明モーダル
+       「遊び方」ボタンを押したときに表示する。
+       通常は非表示（.hidden クラスで制御）。
+       ============================================= -->
+  <div id="help-modal" class="hidden">
+    <!-- 背景（クリックで閉じる） -->
+    <div id="help-overlay"></div>
+
+    <!-- モーダル本体 -->
+    <div id="help-content">
+
+      <!-- ヘッダー -->
+      <div class="modal-header">
+        <h2>遊び方・ルール</h2>
+        <button id="help-close-btn">✕</button>
+      </div>
+
+      <!-- 説明本文（スクロール可能） -->
+      <div id="help-body">
+
+        <!-- 1. 基本ルール -->
+        <section class="help-section">
+          <h3>🎯 基本ルール</h3>
+          <ul>
+            <li>黒が先攻でゲームが始まります</li>
+            <li>相手の石を自分の石で<strong>縦・横・斜め</strong>に挟むと、挟まれた石が自分の色に変わります</li>
+            <li>石を挟める場所にしか置けません</li>
+            <li>置ける場所がない場合は自動でパスになります</li>
+            <li>両方とも置けなくなったらゲーム終了です</li>
+            <li>石が多い方の勝ちです（同数は引き分け）</li>
+          </ul>
+        </section>
+
+        <!-- 2. 画面の見方 -->
+        <section class="help-section">
+          <h3>🖥 画面の見方</h3>
+          <ul>
+            <li><span class="help-badge help-badge--green">薄く光るマス</span> 現在のターンで石を置ける場所です</li>
+            <li><span class="help-badge help-badge--dark">● 黒: 数字 ／ ○ 白: 数字</span> 現在の石数です</li>
+            <li>ゲーム終了時、ターン表示の下に勝敗が表示されます</li>
+            <li>📊 戦績ボタンで過去の対戦結果を確認できます</li>
+          </ul>
+        </section>
+
+        <!-- 3. 対戦モード -->
+        <section class="help-section">
+          <h3>👥 対戦モード</h3>
+          <dl class="help-dl">
+            <dt>2人対戦</dt>
+            <dd>同じ端末で2人が交互に操作します。黒・白どちらも人間が担当します</dd>
+            <dt>CPU対戦</dt>
+            <dd>あなたが黒（先攻）、CPUが白（後攻）で対戦します</dd>
+          </dl>
+        </section>
+
+        <!-- 4. CPUの強さ -->
+        <section class="help-section">
+          <h3>🤖 CPUの強さ</h3>
+          <dl class="help-dl">
+            <dt>初級</dt>
+            <dd>置ける場所の中からランダムに選びます。オセロ初心者でも勝てます</dd>
+            <dt>中級</dt>
+            <dd>一番多くの石をひっくり返せる場所を選びます。少し手強いです</dd>
+            <dt>上級</dt>
+            <dd>角・辺を優先し、危険なマスを避けて置きます。かなり強いです</dd>
+          </dl>
+        </section>
+
+        <!-- 5. CPUに任せるボタン -->
+        <section class="help-section">
+          <h3>🤖 CPUに任せるボタン（2人対戦専用）</h3>
+          <ul>
+            <li>2人対戦中に表示されるボタンです</li>
+            <li>押すと、現在のターンの1手だけCPU（中級）が代わりに打ちます</li>
+            <li>迷ったときや、相手がいないときの補助として使えます</li>
+          </ul>
+        </section>
+
+        <!-- 6. 戦績 -->
+        <section class="help-section">
+          <h3>📊 戦績</h3>
+          <ul>
+            <li>ゲーム終了時に対戦結果が自動で保存されます</li>
+            <li>CPU対戦では「あなたの勝ち」「あなたの負け」として表示されます</li>
+            <li>2人対戦では「黒の勝ち」「白の勝ち」として表示されます</li>
+            <li>勝率（引き分けを除く）も確認できます</li>
+            <li>戦績はこのブラウザにのみ保存されます</li>
+          </ul>
+        </section>
+
+      </div><!-- /#help-body -->
+
+      <!-- 閉じるボタン（下部） -->
+      <button id="help-close-bottom-btn" class="start-btn">閉じる</button>
+
+    </div><!-- /#help-content -->
+  </div><!-- /#help-modal -->
+
+  <!-- cpu.js を先に読み込む（script.js から使うため） -->
+  <script src="cpu.js"></script>
+  <!-- stats.js を読み込む（script.js から使うため） -->
+  <script src="stats.js"></script>
+  <!-- メインのゲームロジックを読み込む -->
+  <script src="script.js"></script>
+</body>
+</html>
