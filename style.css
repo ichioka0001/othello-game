@@ -1130,14 +1130,27 @@ h1 {
   }
 
   /* ゲーム全体コンテナをスマホ時だけ調整する
-     - justify-content: flex-start で上寄せにして初期画面の余白を抑える
-     - min-height: 100dvh で iPhone Safari のアドレスバーを除いた高さを使う
-     - padding-top で適度な上余白を確保する */
+     【初期画面】
+     - min-height: auto でコンテンツ分だけの高さにする
+     - justify-content: flex-start で上寄せにして余白を抑える
+     - padding-top で適度な上余白を確保する
+     【ゲーム画面】
+     - body.game-active が付いているときだけ min-height: 100svh を適用
+     - 100svh = iPhone Safari のアドレスバーが表示された状態の高さ
+       （100dvh より安全で、実表示領域に近い値になる）
+     - justify-content: center で縦中央寄せにして余白を上下に分散する */
   #game-container {
-    min-height: 100vh;   /* フォールバック（dvh 非対応ブラウザ用） */
-    min-height: 100dvh;  /* iPhone Safari のアドレスバーを除いた実際の高さ */
-    justify-content: flex-start; /* 上寄せ（center だと初期画面で余白が大きくなる） */
-    padding-top: 10px;   /* 上余白を最小限に抑える */
+    min-height: auto;            /* 初期画面：コンテンツ分だけの高さ */
+    justify-content: flex-start; /* 初期画面：上寄せ */
+    padding-top: 16px;           /* 初期画面：上余白を最小限に */
+  }
+
+  /* ゲーム画面（body に .game-active クラスが付いているとき） */
+  body.game-active #game-container {
+    min-height: 100vh;   /* フォールバック（svh 非対応ブラウザ用） */
+    min-height: 100svh;  /* iPhone Safari 対応：アドレスバー表示時の高さ基準 */
+    justify-content: center; /* ゲーム画面：縦中央寄せで余白を上下に分散 */
+    padding-top: 0;      /* ゲーム画面：padding-top は不要 */
   }
 
   /* ゲーム画面全体の要素間隔を少し詰める */

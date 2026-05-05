@@ -168,6 +168,10 @@ function startGame() {
   // ゲーム画面を表示する
   document.getElementById('game-screen').classList.remove('hidden');
 
+  // ゲーム画面用のクラスを body に付ける
+  // → CSS で初期画面とゲーム画面のレイアウトを分けるために使う
+  document.body.classList.add('game-active');
+
   // ユーザーの最初の操作として AudioContext を resume する
   // iPhone Safari の自動再生ポリシー対応：音の再生直前ではなく
   // ここで resume することで、意図しないタイミングで音が鳴るのを防ぐ
@@ -191,6 +195,10 @@ function backToModeSelect() {
   document.getElementById('game-screen').classList.add('hidden');
   // モード選択画面を表示する
   document.getElementById('mode-select').classList.remove('hidden');
+
+  // ゲーム画面用のクラスを body から外す
+  // → 初期画面のレイアウト（上寄せ・min-height: auto）に戻す
+  document.body.classList.remove('game-active');
 }
 
 /**
