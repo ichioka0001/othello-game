@@ -100,19 +100,6 @@
     </div><!-- /#game-screen -->
 
     <!-- =============================================
-         デバッグパネル（?debug=1 のときだけ表示）
-         通常は非表示（.hidden クラスで制御）。
-         script.js の initGameDebugMode() によって表示される。
-         ============================================= -->
-    <div id="game-debug-panel" class="hidden">
-      <p class="debug-label">🛠 表示確認ツール（debug=1 モード）</p>
-      <div class="debug-btns">
-        <button id="debug-show-pass">パスメッセージ表示テスト</button>
-        <button id="debug-show-result">勝敗モーダル表示テスト</button>
-      </div>
-    </div>
-
-    <!-- =============================================
          戦績モーダル
          「戦績を見る」ボタンを押したときに表示する。
          通常は非表示（.hidden クラスで制御）。
@@ -383,6 +370,20 @@
 
     </div><!-- /#result-content -->
   </div><!-- /#result-modal -->
+
+  <!-- =============================================
+       デバッグパネル（?debug=1 のときだけ表示）
+       通常は非表示（.hidden クラスで制御）。
+       position: fixed で右下に固定表示する。
+       script.js の initGameDebugMode() によって表示される。
+       ============================================= -->
+  <div id="game-debug-panel" class="hidden">
+    <p class="debug-label">🛠 表示確認ツール</p>
+    <div class="debug-btns">
+      <button id="debug-show-pass">パスメッセージ</button>
+      <button id="debug-show-result">勝敗モーダル</button>
+    </div>
+  </div>
 
   <!-- cpu.js を先に読み込む（script.js から使うため） -->
   <script src="cpu.js"></script>

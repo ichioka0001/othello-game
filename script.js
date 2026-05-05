@@ -1274,14 +1274,10 @@ function initGameDebugMode() {
 }
 
 // URLのクエリパラメータを確認して ?debug=1 のときだけ有効にする
-// stats.js の urlParams と同じ仕組みを使う
+// script.js はページ末尾で読み込まれるため、実行時点で DOM は存在している
 (function () {
   const params = new URLSearchParams(window.location.search);
   if (params.get('debug') === '1') {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initGameDebugMode);
-    } else {
-      initGameDebugMode();
-    }
+    initGameDebugMode();
   }
 })();
