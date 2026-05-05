@@ -257,11 +257,8 @@ function renderBoard(showValidMoves = true) {
         //   showValidMoves が true（呼び出し元がハイライトを許可している）
         //   かつ CPUのターンでない（CPUが置ける場所を人間に見せない）
         //   かつ ゲーム中
-        // この2段階のチェックにより、
-        //   ① 石を置いた直後（renderBoard(false)）→ showValidMoves=false で非表示
-        //   ② CPUターン中（renderBoard(true)）→ isCpuTurn()=true で非表示
-        //   ③ 人間のターン（renderBoard(true)）→ 両方クリアして表示
-        const shouldShowValidMoves = showValidMoves && !isCpuTurn();
+        //   かつ 設定でヒント表示がONになっている
+        const shouldShowValidMoves = showValidMoves && !isCpuTurn() && currentSettings.showHints;
 
         if (isValid && !gameOver && shouldShowValidMoves) {
           // 置ける場所にはハイライトクラスを追加する
@@ -297,12 +294,17 @@ function createStoneElement(color, row, col) {
   // 直前に置いた石かどうか確認する
   // lastPlaced が null でなく、行・列が一致すれば「置いた石」
   if (lastPlaced && lastPlaced.row === row && lastPlaced.col === col) {
-    stone.classList.add('placed'); // 「ポン」と置かれるアニメーション
+    // アニメーションがONの場合のみ .placed クラスを付ける
+    if (currentSettings.animationOn) {
+      stone.classList.add('placed');
+    }
   }
   // 直前にひっくり返った石かどうか確認する
-  // lastFlipped の配列の中に、この石の座標が含まれていれば「ひっくり返った石」
   else if (lastFlipped.some(([r, c]) => r === row && c === col)) {
-    stone.classList.add('flipped'); // 横方向につぶれるアニメーション
+    // アニメーションがONの場合のみ .flipped クラスを付ける
+    if (currentSettings.animationOn) {
+      stone.classList.add('flipped');
+    }
   }
   // それ以外の既存の石にはアニメーションクラスを付けない
 
@@ -637,10 +639,12 @@ function scheduleCpuMove() {
   turnDisplay.textContent = '🤖 CPU思考中...';
   turnDisplay.style.color = '#aaaaaa';
 
-  // 500ms（0.5秒）待ってからCPUの手を実行する
+  // 設定画面で選んだCPU思考時間だけ待ってからCPUの手を実行する
+  // currentSettings.cpuThinkTime は settings.js で管理されている値
+  // （短い：300ms / 普通：500ms / 長い：1000ms）
   setTimeout(() => {
     executeCpuMove();
-  }, 500);
+  }, currentSettings.cpuThinkTime);
 }
 
 /**
@@ -944,7 +948,7 @@ function startCpuProxy() {
   turnDisplay.textContent = `🤖 ${playerName}をCPUが代理中...`;
   turnDisplay.style.color = '#ce93d8'; // 紫系（代理専用の色）
 
-  // 500ms 待ってから代理で打つ（考えているように見せる）
+  // 設定画面で選んだCPU思考時間だけ待ってから代理で打つ
   setTimeout(() => {
     // 現在のプレイヤーの色を代理で打つ
     // executeCpuMove() の第1引数に現在のプレイヤーの色を渡す
@@ -952,7 +956,7 @@ function startCpuProxy() {
       // 代理完了後にボタンを再び有効化する
       setProxyBtnEnabled(true);
     });
-  }, 500);
+  }, currentSettings.cpuThinkTime);
 }
 
 

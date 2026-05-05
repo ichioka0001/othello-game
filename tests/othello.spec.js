@@ -524,7 +524,161 @@ test.describe('遊び方モーダル', () => {
 
 
 // =============================================
-// テストグループ 7: ゲーム終了
+// テストグループ 7: 設定モーダル
+// =============================================
+
+test.describe('設定モーダル', () => {
+
+  test('モード選択画面の設定ボタンで設定モーダルが開く', async ({ page }) => {
+    await page.goto('/');
+
+    // 初期状態ではモーダルが非表示
+    await expect(page.locator('#settings-modal')).toHaveClass(/hidden/);
+
+    // 設定ボタンをクリック
+    await page.click('#settings-btn-mode');
+
+    // モーダルが表示される
+    await expect(page.locator('#settings-modal')).not.toHaveClass(/hidden/);
+  });
+
+  test('ゲーム画面の設定ボタンで設定モーダルが開く', async ({ page }) => {
+    await startGame(page, 'local');
+
+    // 初期状態ではモーダルが非表示
+    await expect(page.locator('#settings-modal')).toHaveClass(/hidden/);
+
+    // 設定ボタンをクリック
+    await page.click('#settings-btn-game');
+
+    // モーダルが表示される
+    await expect(page.locator('#settings-modal')).not.toHaveClass(/hidden/);
+  });
+
+  test('設定モーダルの「✕」ボタンで閉じる', async ({ page }) => {
+    await page.goto('/');
+    await page.click('#settings-btn-mode');
+    await expect(page.locator('#settings-modal')).not.toHaveClass(/hidden/);
+
+    // ✕ボタンをクリック
+    await page.click('#settings-close-btn');
+
+    // モーダルが閉じる
+    await expect(page.locator('#settings-modal')).toHaveClass(/hidden/);
+  });
+
+  test('設定モーダルの背景クリックで閉じる', async ({ page }) => {
+    await page.goto('/');
+    await page.click('#settings-btn-mode');
+    await expect(page.locator('#settings-modal')).not.toHaveClass(/hidden/);
+
+    // モーダル本体（#settings-content）は画面中央に表示される。
+    // 画面左上隅（10, 10）はモーダル本体の外側＝オーバーレイ上なので
+    // 実際のユーザークリックと同じ操作でモーダルを閉じられる。
+    await page.mouse.click(10, 10);
+
+    // モーダルが閉じる
+    await expect(page.locator('#settings-modal')).toHaveClass(/hidden/);
+  });
+
+  test('CPU思考時間の「短い」「普通」「長い」を選択できる', async ({ page }) => {
+    await page.goto('/');
+    await page.click('#settings-btn-mode');
+
+    // 「短い」ボタンをクリック
+    await page.click('.setting-btn[data-setting="cpuThinkTime"][data-value="300"]');
+    await expect(page.locator('.setting-btn[data-setting="cpuThinkTime"][data-value="300"]')).toHaveClass(/setting-btn--active/);
+    await expect(page.locator('.setting-btn[data-setting="cpuThinkTime"][data-value="500"]')).not.toHaveClass(/setting-btn--active/);
+    await expect(page.locator('.setting-btn[data-setting="cpuThinkTime"][data-value="1000"]')).not.toHaveClass(/setting-btn--active/);
+
+    // 「普通」ボタンをクリック
+    await page.click('.setting-btn[data-setting="cpuThinkTime"][data-value="500"]');
+    await expect(page.locator('.setting-btn[data-setting="cpuThinkTime"][data-value="500"]')).toHaveClass(/setting-btn--active/);
+    await expect(page.locator('.setting-btn[data-setting="cpuThinkTime"][data-value="300"]')).not.toHaveClass(/setting-btn--active/);
+
+    // 「長い」ボタンをクリック
+    await page.click('.setting-btn[data-setting="cpuThinkTime"][data-value="1000"]');
+    await expect(page.locator('.setting-btn[data-setting="cpuThinkTime"][data-value="1000"]')).toHaveClass(/setting-btn--active/);
+    await expect(page.locator('.setting-btn[data-setting="cpuThinkTime"][data-value="500"]')).not.toHaveClass(/setting-btn--active/);
+  });
+
+  test('ヒント表示 ON/OFF を切り替えられる', async ({ page }) => {
+    await page.goto('/');
+    await page.click('#settings-btn-mode');
+
+    // 「OFF」ボタンをクリック
+    await page.click('.setting-btn[data-setting="showHints"][data-value="false"]');
+    await expect(page.locator('.setting-btn[data-setting="showHints"][data-value="false"]')).toHaveClass(/setting-btn--active/);
+    await expect(page.locator('.setting-btn[data-setting="showHints"][data-value="true"]')).not.toHaveClass(/setting-btn--active/);
+
+    // 「ON」ボタンをクリック
+    await page.click('.setting-btn[data-setting="showHints"][data-value="true"]');
+    await expect(page.locator('.setting-btn[data-setting="showHints"][data-value="true"]')).toHaveClass(/setting-btn--active/);
+    await expect(page.locator('.setting-btn[data-setting="showHints"][data-value="false"]')).not.toHaveClass(/setting-btn--active/);
+  });
+
+  test('アニメーション ON/OFF を切り替えられる', async ({ page }) => {
+    await page.goto('/');
+    await page.click('#settings-btn-mode');
+
+    // 「OFF」ボタンをクリック
+    await page.click('.setting-btn[data-setting="animationOn"][data-value="false"]');
+    await expect(page.locator('.setting-btn[data-setting="animationOn"][data-value="false"]')).toHaveClass(/setting-btn--active/);
+    await expect(page.locator('.setting-btn[data-setting="animationOn"][data-value="true"]')).not.toHaveClass(/setting-btn--active/);
+
+    // 「ON」ボタンをクリック
+    await page.click('.setting-btn[data-setting="animationOn"][data-value="true"]');
+    await expect(page.locator('.setting-btn[data-setting="animationOn"][data-value="true"]')).toHaveClass(/setting-btn--active/);
+    await expect(page.locator('.setting-btn[data-setting="animationOn"][data-value="false"]')).not.toHaveClass(/setting-btn--active/);
+  });
+
+  test('設定内容が localStorage に保存される', async ({ page }) => {
+    // localStorage をクリアしてから開く
+    await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    // 設定モーダルを開く
+    await page.click('#settings-btn-mode');
+
+    // CPU思考時間を「短い」に変更する
+    await page.click('.setting-btn[data-setting="cpuThinkTime"][data-value="300"]');
+
+    // ヒント表示を「OFF」に変更する
+    await page.click('.setting-btn[data-setting="showHints"][data-value="false"]');
+
+    // アニメーションを「OFF」に変更する
+    await page.click('.setting-btn[data-setting="animationOn"][data-value="false"]');
+
+    // localStorage に保存されていることを確認する
+    const saved = await page.evaluate(() => {
+      const raw = localStorage.getItem('othello_settings');
+      return raw ? JSON.parse(raw) : null;
+    });
+
+    expect(saved).not.toBeNull();
+    expect(saved.cpuThinkTime).toBe(300);
+    expect(saved.showHints).toBe(false);
+    expect(saved.animationOn).toBe(false);
+  });
+
+  test('設定モーダルの下部「閉じる」ボタンで閉じる', async ({ page }) => {
+    await page.goto('/');
+    await page.click('#settings-btn-mode');
+    await expect(page.locator('#settings-modal')).not.toHaveClass(/hidden/);
+
+    // 下部の閉じるボタンをクリック
+    await page.click('#settings-close-bottom-btn');
+
+    // モーダルが閉じる
+    await expect(page.locator('#settings-modal')).toHaveClass(/hidden/);
+  });
+
+});
+
+
+// =============================================
+// テストグループ 8: ゲーム終了
 // =============================================
 
 test.describe('ゲーム終了', () => {
