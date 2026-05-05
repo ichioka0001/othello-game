@@ -804,3 +804,127 @@ test.describe('ゲーム終了', () => {
   });
 
 });
+
+
+// =============================================
+// テストグループ 9: 効果音の呼び出しタイミング
+// =============================================
+
+test.describe('効果音の呼び出しタイミング', () => {
+
+  /**
+   * 効果音関数の呼び出し回数を記録するスパイをセットアップするヘルパー
+   *
+   * page.evaluate() でグローバルの効果音関数を上書きし、
+   * 呼び出し回数を window._soundCounts に記録する。
+   * ゲームロジックには影響しない（元の関数は呼ばない）。
+   */
+  async function setupSoundSpy(page) {
+    await page.evaluate(() => {
+      window._soundCounts = { place: 0, flip: 0, gameOver: 0 };
+      // グローバル関数を上書きしてスパイとして機能させる
+      window.playPlaceSound    = () => { window._soundCounts.place++; };
+      window.playFlipSound     = () => { window._soundCounts.flip++; };
+      window.playGameOverSound = () => { window._soundCounts.gameOver++; };
+    });
+  }
+
+  /** 現在の呼び出し回数を取得するヘルパー */
+  async function getSoundCounts(page) {
+    return page.evaluate(() => window._soundCounts);
+  }
+
+  test('ゲーム開始直後に効果音関数が呼ばれない', async ({ page }) => {
+    await page.goto('/');
+    // スパイをセットアップしてからゲームを開始する
+    await setupSoundSpy(page);
+    await page.click('#btn-start');
+    await expect(page.locator('#game-screen')).not.toHaveClass(/hidden/);
+
+    const counts = await getSoundCounts(page);
+    expect(counts.place).toBe(0);
+    expect(counts.flip).toBe(0);
+    expect(counts.gameOver).toBe(0);
+  });
+
+  test('リセット直後に効果音関数が呼ばれない', async ({ page }) => {
+    await startGame(page, 'local');
+    await setupSoundSpy(page);
+
+    // リセットボタンをクリック
+    await page.click('#reset-btn');
+    await page.waitForTimeout(100);
+
+    const counts = await getSoundCounts(page);
+    expect(counts.place).toBe(0);
+    expect(counts.flip).toBe(0);
+    expect(counts.gameOver).toBe(0);
+  });
+
+  test('置けないマスをクリックしても効果音関数が呼ばれない', async ({ page }) => {
+    await startGame(page, 'local');
+    await setupSoundSpy(page);
+
+    // 角（0,0）は初期状態では置けない
+    await getCell(page, 0, 0).click();
+    await page.waitForTimeout(200);
+
+    const counts = await getSoundCounts(page);
+    expect(counts.place).toBe(0);
+    expect(counts.flip).toBe(0);
+    expect(counts.gameOver).toBe(0);
+  });
+
+  test('石を置いたときだけ効果音関数が呼ばれる', async ({ page }) => {
+    await startGame(page, 'local');
+    await setupSoundSpy(page);
+
+    // 置けるマスをクリックして石を置く
+    const firstValidCell = getValidCells(page).first();
+    await firstValidCell.click();
+
+    // アニメーション完了を待つ
+    await page.waitForTimeout(600);
+
+    const counts = await getSoundCounts(page);
+    // 石を置いた音が1回鳴っていること
+    expect(counts.place).toBe(1);
+    // ひっくり返した音が1回以上鳴っていること
+    expect(counts.flip).toBeGreaterThanOrEqual(1);
+    // ゲーム終了音は鳴っていないこと
+    expect(counts.gameOver).toBe(0);
+  });
+
+  test('設定画面を開閉しても効果音関数が呼ばれない', async ({ page }) => {
+    await startGame(page, 'local');
+    await setupSoundSpy(page);
+
+    // 設定モーダルを開いて閉じる
+    await page.click('#settings-btn-game');
+    await expect(page.locator('#settings-modal')).not.toHaveClass(/hidden/);
+    await page.click('#settings-close-btn');
+    await expect(page.locator('#settings-modal')).toHaveClass(/hidden/);
+
+    const counts = await getSoundCounts(page);
+    expect(counts.place).toBe(0);
+    expect(counts.flip).toBe(0);
+    expect(counts.gameOver).toBe(0);
+  });
+
+  test('ヒント表示ON/OFFを切り替えても効果音関数が呼ばれない', async ({ page }) => {
+    await startGame(page, 'local');
+    await setupSoundSpy(page);
+
+    // ヒント表示をOFFにしてONに戻す
+    await page.click('#settings-btn-game');
+    await page.click('.setting-btn[data-setting="showHints"][data-value="false"]');
+    await page.click('.setting-btn[data-setting="showHints"][data-value="true"]');
+    await page.click('#settings-close-btn');
+
+    const counts = await getSoundCounts(page);
+    expect(counts.place).toBe(0);
+    expect(counts.flip).toBe(0);
+    expect(counts.gameOver).toBe(0);
+  });
+
+});

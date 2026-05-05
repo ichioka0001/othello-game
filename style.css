@@ -15,25 +15,14 @@
      min() は「3つの値のうち最も小さい値を使う」関数。
      ① 62px                    … PCでの最大サイズ
      ② (100vw - 40px) / 8      … 画面幅から左右余白を引いて8等分
-     ③ (100vh - 280px) / 8     … 画面高さからUI部分を引いて8等分
-       280px の内訳（概算）：
-         body padding上下  : 20px
-         h1               : 28px
-         gap × 5          : 30px
-         #status          : 30px
-         #score           : 28px
-         #btn-area（2列） : 80px
-         余裕分           : 64px
-         ─────────────────────
-         合計             : 280px
-     → 画面が小さいほど自動的にマスが小さくなる
-       スマホ2列ボタンレイアウトに合わせて400px→280pxに変更
+     → 幅ベースで決定する。縦に余裕がある画面では余白が上下に分散する
+       （#game-container の justify-content: center で対応）
 
    --stone-size：石のサイズ（マスの82%）
    --hint-size ：置けるマスのヒント点のサイズ（マスの25%）
    ============================================= */
 :root {
-  --cell-size: min(62px, calc((100vw - 40px) / 8), calc((100vh - 280px) / 8));
+  --cell-size: min(62px, calc((100vw - 40px) / 8));
   --stone-size: calc(var(--cell-size) * 0.82);
   --hint-size:  calc(var(--cell-size) * 0.25);
 }
@@ -1134,6 +1123,15 @@ h1 {
   h1 {
     font-size: 1.3rem;
     letter-spacing: 0.15em;
+  }
+
+  /* ゲーム全体コンテナをスマホ時だけ縦中央寄せにする
+     → 縦に余裕がある画面で余白が上下に自然に分散する
+     min-height: 100vh でコンテンツが短くても画面全体を使う
+     コンテンツが画面より長い場合は body の overflow でスクロール可能 */
+  #game-container {
+    min-height: 100vh;
+    justify-content: center;
   }
 
   /* ゲーム画面全体の要素間隔を少し詰める */

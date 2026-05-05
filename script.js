@@ -86,6 +86,11 @@ const CPU_COLOR = WHITE;
 // （isAnimating と役割が似ているが、代理専用に分けることで意図が明確になる）
 let isProxyMode = false;
 
+// ゲームが実際にプレイ中かどうかのフラグ
+// false の間（初期化中・リセット中）は効果音を鳴らさない
+// initGame() の開始時に false にセットし、初期化完了後に true にセットする
+let isGameActive = false;
+
 
 /* =============================================
    ゲームの初期化
@@ -99,6 +104,9 @@ let isProxyMode = false;
  * - リセットボタンが押されたとき（gameMode は維持される）
  */
 function initGame() {
+  // 初期化中は効果音を鳴らさない
+  isGameActive = false;
+
   // 8×8の空の盤面を作成する
   board = createBoard();
 
@@ -142,6 +150,10 @@ function initGame() {
   // 画面を更新する
   renderBoard();
   updateStatus();
+
+  // 初期化完了：ここからプレイヤーの操作を受け付ける
+  // この行より後のクリック・CPU着手でのみ効果音が鳴る
+  isGameActive = true;
 }
 
 /**
@@ -454,7 +466,10 @@ function placeStone(row, col) {
   board[row][col] = currentPlayer;
 
   // 石を置いたときの効果音を鳴らす（sound.js）
-  playPlaceSound();
+  // isGameActive が true のとき（実際のゲームプレイ中）だけ鳴らす
+  if (isGameActive) {
+    playPlaceSound();
+  }
 
   // 取得した石をひっくり返す
   flipStones(flipped);
@@ -480,7 +495,8 @@ function flipStones(stones) {
     }
   }
   // ひっくり返した石がある場合のみ効果音を鳴らす（sound.js）
-  if (stones.length > 0) {
+  // isGameActive が true のとき（実際のゲームプレイ中）だけ鳴らす
+  if (stones.length > 0 && isGameActive) {
     playFlipSound();
   }
 }
@@ -891,7 +907,10 @@ function showResult() {
   hidePassMessage();
 
   // ゲーム終了時の効果音を鳴らす（sound.js）
-  playGameOverSound();
+  // isGameActive が true のとき（実際のゲームプレイ中）だけ鳴らす
+  if (isGameActive) {
+    playGameOverSound();
+  }
 
   // ---- Phase 3 で追加した処理 ----
   // 対戦結果を localStorage に保存する（stats.js の関数を呼ぶ）
