@@ -22,6 +22,7 @@
  *
  * ブラウザのポリシーにより、ユーザー操作前に AudioContext を
  * 作成すると警告が出る場合があるため、初回呼び出し時に生成する。
+ * ※ resume() はここでは行わない。resumeAudioContext() で明示的に行う。
  */
 let _audioCtx = null;
 
@@ -29,11 +30,22 @@ function getAudioContext() {
   if (!_audioCtx) {
     _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
-  // suspended 状態（自動再生ポリシーで停止中）なら再開する
+  return _audioCtx;
+}
+
+/**
+ * AudioContext を resume する関数
+ *
+ * ユーザーの最初の操作（ゲーム開始ボタンなど）のタイミングで
+ * 1回だけ呼ぶことで、iPhone Safari の自動再生ポリシーに対応する。
+ * resume() を音の再生直前ではなく操作時点で行うことで、
+ * 意図しないタイミングで音が鳴るのを防ぐ。
+ */
+function resumeAudioContext() {
+  if (!_audioCtx) return;
   if (_audioCtx.state === 'suspended') {
     _audioCtx.resume();
   }
-  return _audioCtx;
 }
 
 /**
@@ -62,6 +74,8 @@ function playPlaceSound() {
   if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
+    // suspended の場合は resume してから再生する（念のため）
+    if (ctx.state === 'suspended') { ctx.resume(); return; }
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
 
@@ -93,6 +107,8 @@ function playFlipSound() {
   if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
+    // suspended の場合は resume してから再生する（念のため）
+    if (ctx.state === 'suspended') { ctx.resume(); return; }
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
 
@@ -123,6 +139,8 @@ function playGameOverSound() {
   if (!isSoundEnabled()) return;
   try {
     const ctx = getAudioContext();
+    // suspended の場合は resume してから再生する（念のため）
+    if (ctx.state === 'suspended') { ctx.resume(); return; }
 
     // 3音の周波数と開始タイミングを定義する
     const notes = [

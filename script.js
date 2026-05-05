@@ -168,6 +168,11 @@ function startGame() {
   // ゲーム画面を表示する
   document.getElementById('game-screen').classList.remove('hidden');
 
+  // ユーザーの最初の操作として AudioContext を resume する
+  // iPhone Safari の自動再生ポリシー対応：音の再生直前ではなく
+  // ここで resume することで、意図しないタイミングで音が鳴るのを防ぐ
+  resumeAudioContext();
+
   // CPU代理ボタンの表示を切り替える
   // 2人対戦のときだけ表示する（CPU対戦では不要）
   updateProxyBtnVisibility();
