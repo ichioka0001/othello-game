@@ -94,7 +94,7 @@ h1 {
   border-radius: 8px;
   /* padding を小さくして縦スペースを節約する */
   padding: 7px 24px;
-  min-width: 200px;
+  width: fit-content; /* 内容に合わせた幅（min-width 固定をやめる） */
   text-align: center;
   border: 1px solid #0f3460;
 }
@@ -308,7 +308,8 @@ h1 {
   background-color: #e65100; /* オレンジ系 */
   color: #ffffff;
   border-radius: 10px;
-  min-width: 200px;
+  width: fit-content;   /* 内容に合わせた幅 */
+  max-width: 100%;      /* 画面幅を超えない */
   /* padding を小さくして縦スペースを節約する */
   padding: 10px 24px;
   font-size: 1rem;
@@ -636,6 +637,39 @@ h1 {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+/* ✕ボタン（共通） — 戦績・遊び方・設定モーダルで共通使用 */
+.modal-close-btn {
+  /* サイズ：スマホでもタップしやすい 36×36px のタッチターゲット */
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  /* 見た目 */
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%; /* 丸ボタン */
+  color: #cccccc;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  /* アニメーション */
+  transition: background-color 0.15s ease, color 0.15s ease,
+              border-color 0.15s ease, transform 0.1s ease;
+}
+
+.modal-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  transform: scale(1.1);
+}
+
+.modal-close-btn:active {
+  background-color: rgba(255, 255, 255, 0.28);
+  transform: scale(0.95);
+}
 /* サマリーエリア（総対戦数・勝ち数など） */
 #stats-summary {
   display: grid;
@@ -967,6 +1001,7 @@ h1 {
   padding: 20px;
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100vh - 40px);
+  overflow-y: auto; /* 低解像度スマホで下部ボタンが切れないようにする */
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -986,22 +1021,7 @@ h1 {
   letter-spacing: 0.08em;
 }
 
-/* ✕ボタン（共通） */
-#help-close-btn {
-  background: none;
-  border: none;
-  color: #aaaaaa;
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: color 0.15s ease, background-color 0.15s ease;
-}
-
-#help-close-btn:hover {
-  color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.1);
-}
+/* ✕ボタン（共通） — .modal-close-btn クラスで統一済み */
 
 /* 説明本文エリア（スクロール可能） */
 #help-body {
@@ -1122,15 +1142,78 @@ h1 {
     padding: 6px 14px;
   }
 
-  /* ボタンを縦並びにして幅を広げる */
+  /* ---- モード選択画面 ---- */
+
+  /* 左右パディングを縮小して有効幅を確保する */
+  #mode-select {
+    padding: 20px 20px;
+    width: calc(100vw - 32px); /* body の左右余白 16px×2 を引く */
+  }
+
+  /* モードボタン・開始ボタンを画面幅に合わせて伸ばす */
+  .mode-btn,
+  .start-btn {
+    width: 100%;
+    max-width: 280px;
+  }
+
+  /* ---- ゲーム画面のボタンエリア ---- */
+
+  /* 縦並びにして全ボタン幅を統一する */
   #btn-area {
     flex-direction: column;
     align-items: center;
   }
 
+  /* ボタン全種を同じ幅に揃える */
   #reset-btn,
+  #stats-btn,
+  .help-btn,
+  #proxy-btn,
   #back-btn {
-    width: 180px;
+    width: min(200px, 80vw);
     text-align: center;
+    box-sizing: border-box;
   }
+
+  /* .help-btn のタッチターゲットを iOS 推奨の 44px 相当に拡大 */
+  .help-btn {
+    padding: 10px 18px;
+  }
+
+  /* ---- 戦績モーダル ---- */
+
+  /* サマリーを 4列 → 2列 に変更（各セルに十分な幅を確保） */
+  #stats-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* 勝率行は 2列分にまたがる（全列指定を維持） */
+  .summary-item--wide {
+    grid-column: 1 / -1;
+  }
+
+  /* 履歴テーブル：フォントを小さくして4列を維持する */
+  /* 列幅比率を調整して「石数」列が潰れないようにする */
+  .history-header,
+  .history-row {
+    grid-template-columns: 1.6fr 1fr 1fr 1fr; /* 日時列を少し縮め、他3列を均等に */
+    gap: 4px;
+    padding: 6px 4px;
+    font-size: 0.72rem; /* 小さくして4列を収める */
+  }
+
+  /* 日時は短縮表示（折り返しを防ぐ） */
+  .history-date {
+    font-size: 0.68rem;
+    word-break: break-all;
+  }
+
+  /* ---- 遊び方モーダル ---- */
+
+  /* スマホでは #help-body の最大高さを制限してスクロールさせる */
+  #help-body {
+    max-height: calc(100vh - 200px); /* ヘッダー・下部ボタン分を引く */
+  }
+
 }

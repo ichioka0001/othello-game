@@ -693,6 +693,56 @@ test.describe('設定モーダル', () => {
     await expect(page.locator('#settings-modal')).toHaveClass(/hidden/);
   });
 
+  test('ヒントOFFでも石を置ける（クリック判定は維持される）', async ({ page }) => {
+    await startGame(page, 'local');
+
+    // 設定モーダルを開いてヒントをOFFにする
+    await page.click('#settings-btn-game');
+    await page.click('.setting-btn[data-setting="showHints"][data-value="false"]');
+    await page.click('#settings-close-btn');
+
+    // ヒントが非表示になっていることを確認する（.valid クラスがない）
+    await expect(getValidCells(page)).toHaveCount(0);
+
+    // ヒントOFFでも、ルール上置けるマスをクリックすると石が置ける
+    // 初期状態で黒が置けるマスは (2,3), (3,2), (4,5), (5,4) の4か所
+    // JavaScriptで置けるマスの座標を取得してクリックする
+    const validMove = await page.evaluate(() => {
+      const moves = getValidMoves(currentPlayer);
+      return moves.length > 0 ? { row: moves[0][0], col: moves[0][1] } : null;
+    });
+    expect(validMove).not.toBeNull();
+
+    // 取得した座標のマスをクリックする
+    await getCell(page, validMove.row, validMove.col).click();
+
+    // アニメーション完了を待つ
+    await page.waitForTimeout(600);
+
+    // ターンが白に切り替わっていることを確認する（石が置けた証拠）
+    await expect(page.locator('#turn-display')).toHaveText('○ 白のターン');
+  });
+
+  test('ヒントOFF→ONに戻すとヒントが即座に再表示される', async ({ page }) => {
+    await startGame(page, 'local');
+
+    // ヒントをOFFにする
+    await page.click('#settings-btn-game');
+    await page.click('.setting-btn[data-setting="showHints"][data-value="false"]');
+    await page.click('#settings-close-btn');
+
+    // ヒントが非表示になっていることを確認する
+    await expect(getValidCells(page)).toHaveCount(0);
+
+    // ヒントをONに戻す
+    await page.click('#settings-btn-game');
+    await page.click('.setting-btn[data-setting="showHints"][data-value="true"]');
+    await page.click('#settings-close-btn');
+
+    // ヒントが再表示されることを確認する（初期状態で4か所）
+    await expect(getValidCells(page)).toHaveCount(4);
+  });
+
 });
 
 

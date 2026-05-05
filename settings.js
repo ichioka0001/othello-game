@@ -153,6 +153,19 @@ function onSettingButtonClick(settingKey, rawValue) {
 
   // UIのアクティブ状態を更新する
   applySettingsToUI();
+
+  // ヒント表示設定が変わった場合、ゲーム中であれば盤面を即座に再描画する
+  // これにより、ONに戻したときにヒントがすぐ再表示される
+  if (settingKey === 'showHints') {
+    // renderBoard はゲーム画面が表示されているときだけ呼ぶ
+    const gameScreen = document.getElementById('game-screen');
+    if (gameScreen && !gameScreen.classList.contains('hidden')) {
+      // renderBoard はグローバル関数（script.js で定義）
+      if (typeof renderBoard === 'function') {
+        renderBoard();
+      }
+    }
+  }
 }
 
 /**

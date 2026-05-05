@@ -253,17 +253,27 @@ function renderBoard(showValidMoves = true) {
         // some() は「条件に合う要素が1つでもあればtrue」を返す
         const isValid = validMoves.some(([r, c]) => r === row && c === col);
 
-        // ハイライトを表示する条件：
+        // ハイライト（見た目）を表示する条件：
         //   showValidMoves が true（呼び出し元がハイライトを許可している）
         //   かつ CPUのターンでない（CPUが置ける場所を人間に見せない）
         //   かつ ゲーム中
         //   かつ 設定でヒント表示がONになっている
-        const shouldShowValidMoves = showValidMoves && !isCpuTurn() && currentSettings.showHints;
+        const shouldShowHint = showValidMoves && !isCpuTurn() && currentSettings.showHints;
 
-        if (isValid && !gameOver && shouldShowValidMoves) {
-          // 置ける場所にはハイライトクラスを追加する
+        // クリックイベントを付与する条件：
+        //   置けるマスである かつ ゲーム中 かつ CPUのターンでない
+        //   ※ ヒント表示のON/OFFに関わらず、置けるマスはクリック可能にする
+        //   ※ canHumanMove() による最終チェックは handleCellClick() 内で行う
+        const shouldEnableClick = isValid && !gameOver && !isCpuTurn();
+
+        if (isValid && !gameOver && shouldShowHint) {
+          // 置ける場所にはハイライトクラスを追加する（見た目のみ）
           cell.classList.add('valid');
-          // クリックイベントを設定する（クロージャでrow・colを保持）
+        }
+
+        if (shouldEnableClick) {
+          // クリックイベントを設定する（ヒント表示OFFでも有効）
+          // （クロージャでrow・colを保持）
           cell.addEventListener('click', () => handleCellClick(row, col));
         }
       }
