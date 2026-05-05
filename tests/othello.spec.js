@@ -793,6 +793,10 @@ test.describe('ゲーム終了', () => {
     // 勝敗表示が出ていることを確認
     await expect(page.locator('#result-display')).toHaveClass(/visible/);
 
+    // 勝敗モーダルが表示されているので先に閉じる（モーダルがリセットボタンを覆うため）
+    await page.click('#result-close-btn');
+    await expect(page.locator('#result-modal')).toHaveClass(/hidden/);
+
     // リセットボタンをクリック
     await page.click('#reset-btn');
 
@@ -925,6 +929,135 @@ test.describe('効果音の呼び出しタイミング', () => {
     expect(counts.place).toBe(0);
     expect(counts.flip).toBe(0);
     expect(counts.gameOver).toBe(0);
+  });
+
+});
+
+
+// =============================================
+// テストグループ 10: 勝敗モーダル
+// =============================================
+
+test.describe('勝敗モーダル', () => {
+
+  /**
+   * ゲームを強制終了して勝敗モーダルを表示するヘルパー
+   * 盤面をすべて黒石で埋めて checkGameOver() を呼ぶ
+   */
+  async function forceGameOver(page) {
+    await page.evaluate(() => {
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          board[r][c] = BLACK;
+        }
+      }
+      checkGameOver();
+    });
+  }
+
+  test('ゲーム終了時に勝敗モーダルが表示される', async ({ page }) => {
+    await startGame(page, 'local');
+
+    // 初期状態ではモーダルが非表示
+    await expect(page.locator('#result-modal')).toHaveClass(/hidden/);
+
+    // ゲームを強制終了する
+    await forceGameOver(page);
+
+    // 勝敗モーダルが表示される
+    await expect(page.locator('#result-modal')).not.toHaveClass(/hidden/);
+  });
+
+  test('勝敗モーダルに勝敗テキストが表示される', async ({ page }) => {
+    await startGame(page, 'local');
+    await forceGameOver(page);
+
+    // 2人対戦で黒が全部なので「黒の勝ち」が表示される
+    const text = await page.locator('#result-modal-text').textContent();
+    expect(text).toContain('黒の勝ち');
+  });
+
+  test('勝敗モーダルに石数が表示される', async ({ page }) => {
+    await startGame(page, 'local');
+    await forceGameOver(page);
+
+    // 石数が表示されていることを確認する
+    await expect(page.locator('#result-modal-black')).toBeVisible();
+    await expect(page.locator('#result-modal-white')).toBeVisible();
+  });
+
+  test('CPU対戦で黒が勝ったとき「あなたの勝ち」と表示される', async ({ page }) => {
+    await startGame(page, 'cpu', 'easy');
+    await forceGameOver(page);
+
+    // CPU対戦では「あなたの勝ち」と表示される
+    const text = await page.locator('#result-modal-text').textContent();
+    expect(text).toContain('あなたの勝ち');
+  });
+
+  test('勝敗モーダルの「✕」ボタンでモーダルだけ閉じる', async ({ page }) => {
+    await startGame(page, 'local');
+    await forceGameOver(page);
+    await expect(page.locator('#result-modal')).not.toHaveClass(/hidden/);
+
+    // ✕ボタンをクリック
+    await page.click('#result-close-btn');
+
+    // モーダルが閉じる
+    await expect(page.locator('#result-modal')).toHaveClass(/hidden/);
+
+    // ゲーム画面はそのまま表示されている
+    await expect(page.locator('#game-screen')).not.toHaveClass(/hidden/);
+  });
+
+  test('「もう一度遊ぶ」ボタンでモーダルが閉じてゲームがリセットされる', async ({ page }) => {
+    await startGame(page, 'local');
+    await forceGameOver(page);
+    await expect(page.locator('#result-modal')).not.toHaveClass(/hidden/);
+
+    // もう一度遊ぶボタンをクリック
+    await page.click('#result-replay-btn');
+
+    // モーダルが閉じる
+    await expect(page.locator('#result-modal')).toHaveClass(/hidden/);
+
+    // ゲームが初期状態に戻る
+    await expect(page.locator('#turn-display')).toHaveText('● 黒のターン');
+    await expect(page.locator('#black-count')).toHaveText('● 黒: 2');
+    await expect(page.locator('#white-count')).toHaveText('○ 白: 2');
+  });
+
+  test('「モード選択に戻る」ボタンでモーダルが閉じてモード選択画面に戻る', async ({ page }) => {
+    await startGame(page, 'local');
+    await forceGameOver(page);
+    await expect(page.locator('#result-modal')).not.toHaveClass(/hidden/);
+
+    // モード選択に戻るボタンをクリック
+    await page.click('#result-back-btn');
+
+    // モーダルが閉じる
+    await expect(page.locator('#result-modal')).toHaveClass(/hidden/);
+
+    // モード選択画面が表示される
+    await expect(page.locator('#mode-select')).not.toHaveClass(/hidden/);
+
+    // ゲーム画面が非表示になる
+    await expect(page.locator('#game-screen')).toHaveClass(/hidden/);
+  });
+
+  test('リセットボタンでも勝敗モーダルが閉じる', async ({ page }) => {
+    await startGame(page, 'local');
+    await forceGameOver(page);
+    await expect(page.locator('#result-modal')).not.toHaveClass(/hidden/);
+
+    // 勝敗モーダルが全画面を覆うため、JavaScript 経由で initGame() を呼ぶ
+    await page.evaluate(() => { initGame(); });
+
+    // モーダルが閉じる
+    await expect(page.locator('#result-modal')).toHaveClass(/hidden/);
+
+    // ゲームが初期状態に戻る
+    await expect(page.locator('#turn-display')).toHaveText('● 黒のターン');
   });
 
 });

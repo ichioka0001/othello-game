@@ -144,6 +144,9 @@ function initGame() {
   resultDisplay.textContent = '';
   resultDisplay.classList.remove('visible');
 
+  // 勝敗モーダルを閉じる（リセット・もう一度遊ぶ時に確実に閉じる）
+  hideResultModal();
+
   // パスメッセージを非表示にする
   hidePassMessage();
 
@@ -195,6 +198,9 @@ function backToModeSelect() {
   document.getElementById('game-screen').classList.add('hidden');
   // モード選択画面を表示する
   document.getElementById('mode-select').classList.remove('hidden');
+
+  // 勝敗モーダルを閉じる（ゲーム終了後にモード選択に戻る場合）
+  hideResultModal();
 
   // ゲーム画面用のクラスを body から外す
   // → 初期画面のレイアウト（上寄せ・min-height: auto）に戻す
@@ -906,7 +912,7 @@ function showResult() {
     resultCode = 'draw';
   }
 
-  // 結果表示エリアにテキストをセットして表示する
+  // 結果表示エリアにテキストをセットして表示する（PC用・互換性維持）
   const resultDisplay = document.getElementById('result-display');
   resultDisplay.textContent = resultText;
   resultDisplay.classList.add('visible');
@@ -925,6 +931,9 @@ function showResult() {
     playGameOverSound();
   }
 
+  // ---- 勝敗モーダルを表示する ----
+  showResultModal(resultCode, black, white);
+
   // ---- Phase 3 で追加した処理 ----
   // 対戦結果を localStorage に保存する（stats.js の関数を呼ぶ）
   saveGameResult({
@@ -934,6 +943,43 @@ function showResult() {
     blackCount: black,
     whiteCount: white,
   });
+}
+
+/**
+ * 勝敗モーダルを表示する関数
+ *
+ * @param {string} resultCode - 'black' / 'white' / 'draw'
+ * @param {number} black      - 黒の石数
+ * @param {number} white      - 白の石数
+ */
+function showResultModal(resultCode, black, white) {
+  // 勝敗テキストを決定する
+  // CPU対戦では「あなたの勝ち/負け」、2人対戦では「黒/白の勝ち」と表示する
+  let modalText;
+  if (resultCode === 'draw') {
+    modalText = '🤝 引き分け！';
+  } else if (gameMode === 'cpu') {
+    // CPU対戦：黒（プレイヤー）が勝ったかどうかで判定
+    modalText = (resultCode === 'black') ? '🎉 あなたの勝ち！' : '😢 あなたの負け…';
+  } else {
+    // 2人対戦
+    modalText = (resultCode === 'black') ? '🎉 黒の勝ち！' : '🎉 白の勝ち！';
+  }
+
+  // モーダルの各要素を更新する
+  document.getElementById('result-modal-text').textContent = modalText;
+  document.getElementById('result-modal-black').textContent = `● 黒: ${black}`;
+  document.getElementById('result-modal-white').textContent = `○ 白: ${white}`;
+
+  // モーダルを表示する
+  document.getElementById('result-modal').classList.remove('hidden');
+}
+
+/**
+ * 勝敗モーダルを非表示にする関数
+ */
+function hideResultModal() {
+  document.getElementById('result-modal').classList.add('hidden');
 }
 
 
@@ -1155,3 +1201,87 @@ document.getElementById('help-overlay').addEventListener('click', () => {
 document.getElementById('help-close-bottom-btn').addEventListener('click', () => {
   hideHelpModal();
 });
+
+
+/* =============================================
+   勝敗モーダルのイベントリスナー
+   ============================================= */
+
+// 「✕」ボタン：モーダルだけ閉じる（ゲームは終了状態のまま）
+document.getElementById('result-close-btn').addEventListener('click', () => {
+  hideResultModal();
+});
+
+// 「もう一度遊ぶ」ボタン：モーダルを閉じて同じモードでリセット
+document.getElementById('result-replay-btn').addEventListener('click', () => {
+  hideResultModal();
+  initGame();
+});
+
+// 「モード選択に戻る」ボタン：モーダルを閉じてモード選択画面へ
+document.getElementById('result-back-btn').addEventListener('click', () => {
+  backToModeSelect();
+});
+
+
+/* =============================================
+   デバッグモード（?debug=1 のときだけ有効）
+   =============================================
+   URLに ?debug=1 が付いているときだけ、
+   表示確認用のデバッグパネルを表示する。
+
+   【確認できること】
+   - パスメッセージの表示位置・アニメーション
+   - 勝敗モーダルの表示内容・ボタン動作
+
+   【注意】
+   - パスメッセージテストはターン・盤面状態を変更しない
+   - 勝敗モーダルテストは localStorage に保存しない
+   - 通常アクセス時（?debug=1 なし）は一切表示されない
+   ============================================= */
+
+/**
+ * ゲーム画面のデバッグモードを初期化する関数
+ *
+ * URLに ?debug=1 が付いているときだけ呼ばれる。
+ * デバッグパネルを表示してイベントリスナーを設定する。
+ */
+function initGameDebugMode() {
+  const panel = document.getElementById('game-debug-panel');
+  if (!panel) return;
+
+  // デバッグパネルを表示する
+  panel.classList.remove('hidden');
+
+  // 「パスメッセージ表示テスト」ボタン
+  document.getElementById('debug-show-pass').addEventListener('click', () => {
+    // ターン・盤面状態は変更せず、表示だけテストする
+    showPassMessage('白は置ける場所がないため、パスします（テスト表示）');
+    // 3秒後に自動で消す（実際のパス処理と同じ挙動）
+    setTimeout(() => {
+      hidePassMessage();
+    }, 3000);
+  });
+
+  // 「勝敗モーダル表示テスト」ボタン
+  document.getElementById('debug-show-result').addEventListener('click', () => {
+    // localStorage への保存・ゲーム終了処理は行わず、表示だけテストする
+    // showResultModal() を直接呼んでモーダルを表示する
+    showResultModal('black', 40, 24);
+  });
+
+  console.log('[DEBUG] ゲームデバッグモードが有効です。表示確認ボタンが使えます。');
+}
+
+// URLのクエリパラメータを確認して ?debug=1 のときだけ有効にする
+// stats.js の urlParams と同じ仕組みを使う
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('debug') === '1') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initGameDebugMode);
+    } else {
+      initGameDebugMode();
+    }
+  }
+})();

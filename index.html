@@ -66,6 +66,7 @@
 
       <!-- ゲーム終了時の勝敗結果を表示するエリア（通常は非表示） -->
       <!-- ターン表示の直下に置くことで、ゲーム終了時に自然に目に入る -->
+      <!-- スマホでは勝敗モーダルを使うため CSS で非表示にする -->
       <div id="result-display"></div>
 
       <!-- 黒・白それぞれの石数を表示するエリア -->
@@ -97,6 +98,19 @@
       </div>
 
     </div><!-- /#game-screen -->
+
+    <!-- =============================================
+         デバッグパネル（?debug=1 のときだけ表示）
+         通常は非表示（.hidden クラスで制御）。
+         script.js の initGameDebugMode() によって表示される。
+         ============================================= -->
+    <div id="game-debug-panel" class="hidden">
+      <p class="debug-label">🛠 表示確認ツール（debug=1 モード）</p>
+      <div class="debug-btns">
+        <button id="debug-show-pass">パスメッセージ表示テスト</button>
+        <button id="debug-show-result">勝敗モーダル表示テスト</button>
+      </div>
+    </div>
 
     <!-- =============================================
          戦績モーダル
@@ -339,6 +353,36 @@
 
     </div><!-- /#settings-content -->
   </div><!-- /#settings-modal -->
+
+  <!-- =============================================
+       勝敗モーダル
+       ゲーム終了時に表示する。
+       通常は非表示（.hidden クラスで制御）。
+       ============================================= -->
+  <div id="result-modal" class="hidden">
+    <!-- モーダル本体（背景クリックでは閉じない） -->
+    <div id="result-content">
+
+      <!-- 閉じるボタン（右上） -->
+      <button id="result-close-btn" class="modal-close-btn">✕</button>
+
+      <!-- 勝敗結果テキスト -->
+      <div id="result-modal-text"></div>
+
+      <!-- 石数表示 -->
+      <div id="result-modal-score">
+        <span id="result-modal-black" class="result-modal-stone result-modal-stone--black"></span>
+        <span id="result-modal-white" class="result-modal-stone result-modal-stone--white"></span>
+      </div>
+
+      <!-- アクションボタン -->
+      <div id="result-modal-btns">
+        <button id="result-replay-btn" class="result-modal-btn result-modal-btn--primary">🔄 もう一度遊ぶ</button>
+        <button id="result-back-btn"   class="result-modal-btn result-modal-btn--secondary">🏠 モード選択に戻る</button>
+      </div>
+
+    </div><!-- /#result-content -->
+  </div><!-- /#result-modal -->
 
   <!-- cpu.js を先に読み込む（script.js から使うため） -->
   <script src="cpu.js"></script>
