@@ -10,6 +10,7 @@
    - cpuThinkTime  : CPU思考時間（ms）
    - showHints     : 置ける場所のヒント表示（true/false）
    - animationOn   : アニメーションのON/OFF（true/false）
+   - soundOn       : 効果音のON/OFF（true/false）
 
    ============================================= */
 
@@ -21,6 +22,7 @@ const DEFAULT_SETTINGS = {
   cpuThinkTime: 500,   // CPU思考時間：普通（500ms）
   showHints:    true,  // ヒント表示：ON
   animationOn:  true,  // アニメーション：ON
+  soundOn:      true,  // 効果音：ON
 };
 
 // 現在の設定を保持するオブジェクト
@@ -107,6 +109,16 @@ function applySettingsToUI() {
   document.querySelectorAll('.setting-btn[data-setting="animationOn"]').forEach(btn => {
     const val = btn.dataset.value === 'true';
     if (val === currentSettings.animationOn) {
+      btn.classList.add('setting-btn--active');
+    } else {
+      btn.classList.remove('setting-btn--active');
+    }
+  });
+
+  // 効果音のボタンを更新する
+  document.querySelectorAll('.setting-btn[data-setting="soundOn"]').forEach(btn => {
+    const val = btn.dataset.value === 'true';
+    if (val === currentSettings.soundOn) {
       btn.classList.add('setting-btn--active');
     } else {
       btn.classList.remove('setting-btn--active');

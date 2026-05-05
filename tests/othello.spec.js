@@ -632,6 +632,21 @@ test.describe('設定モーダル', () => {
     await expect(page.locator('.setting-btn[data-setting="animationOn"][data-value="false"]')).not.toHaveClass(/setting-btn--active/);
   });
 
+  test('効果音 ON/OFF を切り替えられる', async ({ page }) => {
+    await page.goto('/');
+    await page.click('#settings-btn-mode');
+
+    // 「OFF」ボタンをクリック
+    await page.click('.setting-btn[data-setting="soundOn"][data-value="false"]');
+    await expect(page.locator('.setting-btn[data-setting="soundOn"][data-value="false"]')).toHaveClass(/setting-btn--active/);
+    await expect(page.locator('.setting-btn[data-setting="soundOn"][data-value="true"]')).not.toHaveClass(/setting-btn--active/);
+
+    // 「ON」ボタンをクリック
+    await page.click('.setting-btn[data-setting="soundOn"][data-value="true"]');
+    await expect(page.locator('.setting-btn[data-setting="soundOn"][data-value="true"]')).toHaveClass(/setting-btn--active/);
+    await expect(page.locator('.setting-btn[data-setting="soundOn"][data-value="false"]')).not.toHaveClass(/setting-btn--active/);
+  });
+
   test('設定内容が localStorage に保存される', async ({ page }) => {
     // localStorage をクリアしてから開く
     await page.goto('/');
@@ -650,6 +665,9 @@ test.describe('設定モーダル', () => {
     // アニメーションを「OFF」に変更する
     await page.click('.setting-btn[data-setting="animationOn"][data-value="false"]');
 
+    // 効果音を「OFF」に変更する
+    await page.click('.setting-btn[data-setting="soundOn"][data-value="false"]');
+
     // localStorage に保存されていることを確認する
     const saved = await page.evaluate(() => {
       const raw = localStorage.getItem('othello_settings');
@@ -660,6 +678,7 @@ test.describe('設定モーダル', () => {
     expect(saved.cpuThinkTime).toBe(300);
     expect(saved.showHints).toBe(false);
     expect(saved.animationOn).toBe(false);
+    expect(saved.soundOn).toBe(false);
   });
 
   test('設定モーダルの下部「閉じる」ボタンで閉じる', async ({ page }) => {

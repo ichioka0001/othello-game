@@ -443,6 +443,9 @@ function placeStone(row, col) {
   // 盤面データに現在のプレイヤーの石を置く
   board[row][col] = currentPlayer;
 
+  // 石を置いたときの効果音を鳴らす（sound.js）
+  playPlaceSound();
+
   // 取得した石をひっくり返す
   flipStones(flipped);
 
@@ -465,6 +468,10 @@ function flipStones(stones) {
     } else if (board[row][col] === WHITE) {
       board[row][col] = BLACK; // 白 → 黒
     }
+  }
+  // ひっくり返した石がある場合のみ効果音を鳴らす（sound.js）
+  if (stones.length > 0) {
+    playFlipSound();
   }
 }
 
@@ -872,6 +879,9 @@ function showResult() {
 
   // パスメッセージを非表示にする
   hidePassMessage();
+
+  // ゲーム終了時の効果音を鳴らす（sound.js）
+  playGameOverSound();
 
   // ---- Phase 3 で追加した処理 ----
   // 対戦結果を localStorage に保存する（stats.js の関数を呼ぶ）
